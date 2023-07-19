@@ -1,10 +1,10 @@
 // ==UserScript==
 // @name         GCI Fixes
-// @namespace    http://tampermonkey.net/
+// @namespace    https://fullymanaged.service-now.com/
 // @version      0.1
 // @description  Fixing some issues with how GCI shows things, and try to take over the world!
 // @author       Lucas Brunton
-// @match        https://fullymanaged.service-now.com/*
+// @match        https://(fullymanaged.service-now.com)|(gci.fullymanaged.com)/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=service-now.com
 // @grant        none
 // ==/UserScript==

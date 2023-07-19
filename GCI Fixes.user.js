@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GCI Fixes
 // @namespace    https://fullymanaged.service-now.com/
-// @version      0.1
+// @version      0.2
 // @description  Fixing some issues with how GCI shows things, and try to take over the world!
 // @author       Lucas Brunton
 // @match        https://fullymanaged.service-now.com/*

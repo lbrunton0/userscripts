@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GCI Fixes
 // @namespace    https://fullymanaged.service-now.com/
-// @version      0.4
+// @version      0.4.1
 // @description  Fixing some issues with how GCI shows things, and try to take over the world!
 // @author       Lucas Brunton
 // @match        https://fullymanaged.service-now.com/*
@@ -36,10 +36,7 @@ let gmc = new GM_config(
             'showPanel': {
                 'label': 'Show Settings On load',
                 'type': 'checkbox',
-                'title': 'Show Settings on Load',
-                'css': {
-                },
-                'default': true
+                'default': false
             },
             'name': {
                 'label': 'Full Name',

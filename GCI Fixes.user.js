@@ -34,7 +34,7 @@ let gmc = new GM_config(
         'frameStyle': 'inset: 165px auto auto 320px; border-radius: 5px; border: 2px solid rgb(0, 0, 0); height: auto; margin: 0px; max-height: 95%; max-width: 95%; opacity: 1; overflow: auto; padding: 10px; position: fixed; width: auto; z-index: 9999; display: block; box-shadow: 0 0 0 99999px rgba(0, 0, 0, .5)',
         'fields': {
             'showPanel': {
-                'label': 'Show Settings On load',
+                'label': 'Show settings on load',
                 'type': 'checkbox',
                 'default': false
             },

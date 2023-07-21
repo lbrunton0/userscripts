@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GCI Fixes
 // @namespace    https://fullymanaged.service-now.com/
-// @version      0.4.1
+// @version      0.5
 // @description  Fixing some issues with how GCI shows things, and try to take over the world!
 // @author       Lucas Brunton
 // @match        https://fullymanaged.service-now.com/*
@@ -14,13 +14,14 @@
 // @grant        GM.setValue
 // @grant        GM_registerMenuCommand
 // ==/UserScript==
-/* globals GM_config */
+/* globals GM_config waitForKeyElements*/
 let name = ""
 let emailPreview = "";
 let showPanel = true;
 let maxWidth = true;
 let fullEmail = true;
 let autoShowEmail = true;
+let autoShowMore = true;
 
 let initCount = 0;
 
@@ -34,15 +35,18 @@ let gmc = new GM_config(
         'frameStyle': 'inset: 165px auto auto 320px; border-radius: 5px; border: 2px solid rgb(0, 0, 0); height: auto; margin: 0px; max-height: 95%; max-width: 95%; opacity: 1; overflow: auto; padding: 10px; position: fixed; width: auto; z-index: 9999; display: block; box-shadow: 0 0 0 99999px rgba(0, 0, 0, .5)',
         'fields': {
             'showPanel': {
-                'label': 'Show settings on load',
+                'label': 'Show Settings On load',
                 'type': 'checkbox',
-                'default': false
+                'title': 'Show Settings on Load',
+                'css': {
+                },
+                'default': true
             },
             'name': {
                 'label': 'Full Name',
                 'type': 'text',
                 'title': 'Enter your Full name as its known by GCI',
-                'default':  /\/navpage\.do/.test(location.pathname) ? document.querySelector('#user_info_dropdown > div > .user-name').innerText : '',
+                'default': /\/navpage\.do/.test(location.pathname) ? document.querySelector('#user_info_dropdown > div > .user-name').innerText : '',
                 'section': ['', 'Global']
             },
             'maxWith': {
@@ -50,6 +54,13 @@ let gmc = new GM_config(
                 'type': 'checkbox',
                 'title': 'this is mainly to prevent Images in emails from being to wide',
                 'default': true
+            },
+            'autoShowMore': {
+                'label': 'Auto Expand Show More',
+                'type': 'checkbox',
+                'title': 'Automatically expand the "Show more" links in FM Workspace',
+                'default': 'true',
+                'section': ['', 'FM Workspace Stuff']
             },
             'fullEmail': {
                 'label': 'Old GCI view - Full Email',
@@ -70,22 +81,10 @@ let gmc = new GM_config(
                 'title': 'Makes the email preview popup fill the space.',
                 'default': true
             },
-            // '': {
-            //     'label': '',
-            //     'type': '',
-            //     'title': '',
-            //     'default': ''
-            // },
-            // '': {
-            //     'label': '',
-            //     'type': '',
-            //     'title': '',
-            //     'default': ''
-            // },
         },
         'events': {
             'init': function () {
-                initCount ++;
+                initCount++;
                 console.log("GCI Fixes initCount: " + initCount);
                 if (initCount == 1) {
                     name = this.get('name');
@@ -94,15 +93,19 @@ let gmc = new GM_config(
                     maxWidth = this.get('maxWith');
                     fullEmail = this.get('fullEmail');
                     autoShowEmail = this.get('autoShowEmail');
+                    autoShowMore = this.get('autoShowMore');
 
                     if (showPanel && window.top == window.self) {
                         this.open()
                     }
                     runUserScript();
+                } else {
+                    console.log('Name: ' + name);
+                    runUserScript();
                 }
             },
             'open': function () {
-                    let spcbDiv = document.getElementById('gciFixes_showPanel_var')
+                let spcbDiv = document.getElementById('gciFixes_showPanel_var')
                 console.log(spcbDiv);
                 let spcbSpan = document.createElement('span')
                 spcbSpan.appendChild(spcbDiv.children[0]);
@@ -121,8 +124,8 @@ let gmc = new GM_config(
     }
 );
 
-if (window.top == window.self && /\/navpage\.do/.test(location.pathname)) {
-    const menu_command_id = GM_registerMenuCommand("Settings", function() {
+if (window.top == window.self) {
+    const menu_command_id = GM_registerMenuCommand("Settings", function () {
         gmc.open();
     });
 }
@@ -137,13 +140,76 @@ function addGlobalStyle(css) {
     head.appendChild(style);
 }
 
+/**
+ * Finds all elements in the entire page matching `selector`, even if they are in shadowRoots.
+ * Just like `querySelectorAll`, but automatically expand on all child `shadowRoot` elements.
+ * @see https://stackoverflow.com/a/71692555/2228771
+ */
+function querySelectorAllShadows(selector, el = document.body) {
+    // recurse on childShadows
+    const childShadows = Array.from(el.querySelectorAll('*')).map(el => el.shadowRoot).filter(Boolean);
+
+    // console.log('[querySelectorAllShadows]', selector, el, `(${childShadows.length} shadowRoots)`);
+
+    const childResults = childShadows.map(child => querySelectorAllShadows(selector, child));
+
+    // fuse all results into singular, flat array
+    const result = Array.from(el.querySelectorAll(selector));
+    return result.concat(childResults).flat();
+}
+
+var waitforElementcontrolObj = {};
+function waitforElement(selector, actionfunction, children = false) {
+    let controlObj = waitforElementcontrolObj;
+    let timeout = (controlObj.timeout || 0) + + 300;
+    let controlKey = selector.replace(/[^\w]/g, "_");
+    let timeControl = controlObj[controlKey];
+
+    let target = querySelectorAllShadows(selector);
+
+    if (target && target.length > 0 && timeControl) {
+        let childcount = 0;
+        for (let i = 0; i < target.length; i++) {
+            if (target[i].children) {
+                childcount += target[i].children.length
+            }
+        }
+        if (timeout > 300000 || !children || (children && childcount > 0)) {
+            //--- The only condition where we need to clear the timer.
+            clearInterval(timeControl);
+            delete controlObj[controlKey]
+            actionfunction();
+        }
+    }
+    if (!timeControl) {
+        timeControl = setInterval(function () {
+            waitforElement(selector, actionfunction, children);
+        }, 300);
+        controlObj[controlKey] = timeControl;
+    }
+}
+
+
 function runUserScript() {
-
-    console.log(name + " " + emailPreview + " " + showPanel);
-
+    //Global Stuff
     if (maxWidth) {
         addGlobalStyle('* {max-width: 100%;}')
     }
+
+    // FM Workspace stuff
+    if (autoShowMore && /\/now\/cwf\/agent\/record\/x_carew_default_ca_fm_case\/.*/.test(location.pathname)) {
+        waitforElement('dl.now-label-value.-stacked.will-truncate.will-wrap.-horizontal.-equal.-md', function () {
+            // waitforElement('button.now-button-bare.-secondary.-sm', function () {
+            let buttons = querySelectorAllShadows('button.now-button-bare.-secondary.-sm');
+            for (let i = 0; i < buttons.length; i++) {
+                if (buttons[i].innerText === "Show more") {
+                    buttons[i].click();
+                }
+            }
+        });
+    }
+
+    // Old GCI View Stuff
     if (emailPreview) {
         addGlobalStyle('.modal-lg {margin: .5% !important; width: 99% !important;}')
         addGlobalStyle('#email_preview_iframe {margin: .5%  !important; width: 99%  !important;}')
